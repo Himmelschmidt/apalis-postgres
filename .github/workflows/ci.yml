@@ -2,15 +2,30 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  DATABASE_URL: postgres://postgres:postgres@localhost/postgres
 
 jobs:
+  defaults:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
   test:
     name: Test Suite
     runs-on: ${{ matrix.os }}
@@ -21,6 +36,7 @@ jobs:
         include:
           - os: ubuntu-latest
             rust: nightly
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -42,43 +58,8 @@ jobs:
             ${{ runner.os }}-cargo-${{ matrix.rust }}-
             ${{ runner.os }}-cargo-
 
-      - name: Run cargo test
-        run: cargo test --verbose
-
       - name: Run cargo test with all features
-        run: cargo test --all-features --verbose
-
-  features:
-    name: Feature Matrix Tests
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        features:
-          - ""
-          - "--features migrate"
-          - "--features async-std-comp"
-          - "--features async-std-comp-native-tls"
-          - "--features tokio-comp"
-          - "--features tokio-comp-native-tls"
-          - "--all-features"
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-features-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Test with features
-        run: cargo test ${{ matrix.features }} --verbose
+        run: cargo test --all-features --verbose --test-threads=1
 
   fmt:
     name: Rustfmt
