@@ -36,7 +36,7 @@ mod ack;
 mod fetcher;
 mod from_row;
 
-pub type PgContext = apalis_sql::context::SqlContext<Postgres>;
+pub type PgContext = apalis_sql::context::SqlContext<PgPool>;
 mod queries;
 pub mod shared;
 pub mod sink;
